@@ -1,0 +1,8 @@
+{
+  "name": "DevFitness Console",
+  "description": "A developer-themed fitness and diet tracking application designed for 'DevCoders' to manage their 'system performance' and achieve weight loss goals through 'Commits' and 'Sprints'.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
