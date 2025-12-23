@@ -95,7 +95,17 @@ const App: React.FC = () => {
   };
 
   const updateCommit = (id: string, updates: Partial<CommitRecord>) => {
-    setCommits(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+    setCommits(prev => prev.map(c => {
+      if (c.id === id) {
+        const updated = { ...c, ...updates };
+        // 如果时长变了，重新计算卡路里
+        if (updates.duration !== undefined) {
+          updated.calories = Math.round(updates.duration * 7.5);
+        }
+        return updated;
+      }
+      return c;
+    }));
   };
 
   const clearAllData = () => {

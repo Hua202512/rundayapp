@@ -20,7 +20,13 @@ import {
   Users,
   PlusCircle,
   TrendingUp,
-  Heart
+  Heart,
+  Share2,
+  Copy,
+  MessageCircle,
+  QrCode,
+  X,
+  Check
 } from 'lucide-react';
 import { CommitRecord, ActivityType, PlanDay } from '../types';
 import { ACTIVITY_ICONS, ACTIVITY_COLORS } from '../constants';
@@ -86,6 +92,8 @@ const Dashboard: React.FC<Props> = (props) => {
   const [editCommitData, setEditCommitData] = useState<Partial<CommitRecord>>({});
   
   const [selectedFriend, setSelectedFriend] = useState<FriendStatus | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [copyStatus, setCopyStatus] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -117,8 +125,14 @@ const Dashboard: React.FC<Props> = (props) => {
     setEditCommitData({ ...commit });
   };
 
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(`https://devfitness.app/join/${userName.toLowerCase()}`);
+    setCopyStatus(true);
+    setTimeout(() => setCopyStatus(false), 2000);
+  };
+
   return (
-    <div className="space-y-6 pb-4 animate-in fade-in duration-700">
+    <div className="space-y-6 pb-4 animate-in fade-in duration-700 relative">
       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -128,6 +142,71 @@ const Dashboard: React.FC<Props> = (props) => {
         }
       }} />
       
+      {/* 邀请好友弹窗 */}
+      {showInviteModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-300">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowInviteModal(false)}></div>
+          <div className="bg-white w-full max-w-sm rounded-[3rem] p-8 relative shadow-2xl overflow-hidden">
+            <button 
+              onClick={() => setShowInviteModal(false)}
+              className="absolute top-6 right-6 p-2 bg-slate-50 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="space-y-8">
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                   <Users size={32} />
+                </div>
+                <h2 className="text-xl font-black text-slate-800 tracking-tight">邀请战友加入 SQUAD</h2>
+                <p className="text-xs text-slate-400 font-medium">共同挑战 10KG 减重目标，同步运动 Commits</p>
+              </div>
+
+              <div className="space-y-3">
+                <button 
+                  className="w-full flex items-center justify-between p-4 bg-emerald-500 hover:bg-emerald-600 rounded-2xl text-white transition-all active:scale-95 shadow-lg shadow-emerald-100 group"
+                  onClick={() => alert("已生成微信分享卡片，请通过系统分享发送给好友")}
+                >
+                  <div className="flex items-center gap-3">
+                    <MessageCircle size={24} fill="white" />
+                    <span className="text-sm font-black uppercase tracking-widest">微信好友邀请</span>
+                  </div>
+                  <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={handleCopyLink}
+                    className={`flex-1 flex items-center justify-center gap-3 p-4 rounded-2xl border-2 border-dashed transition-all ${copyStatus ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-100 text-slate-600 hover:border-indigo-200'}`}
+                  >
+                    {copyStatus ? <Check size={20} /> : <Copy size={20} />}
+                    <span className="text-sm font-black uppercase tracking-widest">{copyStatus ? '已复制链接' : '复制专属链接'}</span>
+                  </button>
+                  <button className="w-16 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all border border-slate-100">
+                    <QrCode size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest text-center mb-3">当前 Squad 席位: 4/8</p>
+                <div className="flex justify-center -space-x-3">
+                  {MOCK_FRIENDS.map(f => (
+                    <div key={f.id} className="w-10 h-10 bg-white border-2 border-slate-50 rounded-full flex items-center justify-center text-lg shadow-sm">
+                      {f.avatar}
+                    </div>
+                  ))}
+                  <div className="w-10 h-10 bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-full flex items-center justify-center text-indigo-400">
+                    <PlusCircle size={16} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 用户头部 */}
       <div className="flex justify-between items-start pt-2 px-1">
         <div className="flex-1">
@@ -268,6 +347,10 @@ const Dashboard: React.FC<Props> = (props) => {
         </div>
       </div>
 
+      <button onClick={onCheckIn} className="w-full py-5 bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-[2rem] text-indigo-600 font-black text-sm hover:bg-indigo-100 transition-all flex items-center justify-center gap-3 group uppercase tracking-widest">
+        <Zap size={20} className="group-hover:animate-bounce" /> 提交打卡，同步状态
+      </button>
+
       <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 space-y-5">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
@@ -277,8 +360,11 @@ const Dashboard: React.FC<Props> = (props) => {
               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">10KG 减重突击队</p>
             </div>
           </div>
-          <button className="p-2 bg-slate-50 hover:bg-emerald-50 rounded-xl text-slate-300 hover:text-emerald-600 transition-all border border-slate-100 active:scale-90">
-            <PlusCircle size={18} />
+          <button 
+            onClick={() => setShowInviteModal(true)}
+            className="p-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl transition-all shadow-lg shadow-emerald-100 active:scale-90 group"
+          >
+            <PlusCircle size={20} className="group-hover:rotate-90 transition-transform" />
           </button>
         </div>
 
@@ -306,6 +392,16 @@ const Dashboard: React.FC<Props> = (props) => {
             </div>
           ))}
           
+          <div 
+            onClick={() => setShowInviteModal(true)}
+            className="flex flex-col items-center gap-2 shrink-0 cursor-pointer group"
+          >
+            <div className="w-14 h-14 border-2 border-dashed border-slate-100 rounded-full flex items-center justify-center text-slate-200 group-hover:border-emerald-300 group-hover:text-emerald-400 transition-all">
+              <PlusCircle size={24} />
+            </div>
+            <span className="text-[8px] font-black text-slate-300 uppercase">待邀请</span>
+          </div>
+          
           {selectedFriend && (
             <div className="absolute top-0 right-0 bg-white/95 backdrop-blur-md border border-emerald-100 rounded-3xl p-4 shadow-xl z-20 animate-in slide-in-from-right-4 w-48">
               <div className="flex justify-between items-start mb-2">
@@ -330,10 +426,6 @@ const Dashboard: React.FC<Props> = (props) => {
         </div>
       </div>
 
-      <button onClick={onCheckIn} className="w-full py-5 bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-[2rem] text-indigo-600 font-black text-sm hover:bg-indigo-100 transition-all flex items-center justify-center gap-3 group uppercase tracking-widest">
-        <Zap size={20} className="group-hover:animate-bounce" /> 提交打卡，同步状态
-      </button>
-
       <div className="space-y-4">
         <div className="flex items-center gap-3 px-2">
            <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-slate-100"><History size={20} /></div>
@@ -348,11 +440,40 @@ const Dashboard: React.FC<Props> = (props) => {
               <div key={commit.id} className="bg-white rounded-[2.5rem] p-5 shadow-sm border border-slate-50 group hover:border-indigo-100 transition-all relative overflow-hidden">
                 {editingCommitId === commit.id ? (
                   <div className="space-y-4 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
-                    <input type="number" step="0.1" className="w-full p-2 bg-slate-50 rounded-xl text-xs font-bold border border-slate-100" value={editCommitData.weight} onChange={e => setEditCommitData({...editCommitData, weight: parseFloat(e.target.value)})} placeholder="修改体重..." />
-                    <textarea className="w-full p-2 bg-slate-50 rounded-xl text-xs border border-slate-100" value={editCommitData.note} onChange={e => setEditCommitData({...editCommitData, note: e.target.value})} placeholder="修改心得..." />
-                    <div className="flex gap-2">
-                      <button onClick={(e) => { e.stopPropagation(); onUpdateCommit(editingCommitId, editCommitData); setEditingCommitId(null); }} className="flex-1 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase">保存</button>
-                      <button onClick={(e) => { e.stopPropagation(); setEditingCommitId(null); }} className="flex-1 py-2 bg-slate-100 text-slate-400 rounded-xl text-xs font-black uppercase">取消</button>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">运动时长 (MIN)</label>
+                        <input type="number" className="w-full p-2.5 bg-slate-50 rounded-xl text-xs font-bold border border-slate-100 outline-none focus:border-indigo-200" value={editCommitData.duration} onChange={e => setEditCommitData({...editCommitData, duration: parseInt(e.target.value) || 0})} />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">当前体重 (KG)</label>
+                        <input type="number" step="0.1" className="w-full p-2.5 bg-slate-50 rounded-xl text-xs font-bold border border-slate-100 outline-none focus:border-indigo-200" value={editCommitData.weight} onChange={e => setEditCommitData({...editCommitData, weight: parseFloat(e.target.value) || undefined})} placeholder="可选" />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">运动距离</label>
+                        <input type="number" step="0.1" className="w-full p-2.5 bg-slate-50 rounded-xl text-xs font-bold border border-slate-100 outline-none focus:border-indigo-200" value={editCommitData.distance} onChange={e => setEditCommitData({...editCommitData, distance: parseFloat(e.target.value) || 0})} />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">单位</label>
+                        <select className="w-full p-2.5 bg-slate-50 rounded-xl text-xs font-black border border-slate-100 outline-none focus:border-indigo-200 appearance-none" value={editCommitData.distanceUnit} onChange={e => setEditCommitData({...editCommitData, distanceUnit: e.target.value as any})}>
+                          <option value="km">KM</option>
+                          <option value="m">M</option>
+                          <option value="次">次</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">感悟记录</label>
+                      <textarea className="w-full p-3 bg-slate-50 rounded-xl text-xs border border-slate-100 outline-none focus:border-indigo-200 resize-none h-20" value={editCommitData.note} onChange={e => setEditCommitData({...editCommitData, note: e.target.value})} placeholder="修改心得..." />
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <button onClick={(e) => { e.stopPropagation(); onUpdateCommit(editingCommitId, editCommitData); setEditingCommitId(null); }} className="flex-1 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase shadow-lg shadow-indigo-100 transition-transform active:scale-95">保存修改</button>
+                      <button onClick={(e) => { e.stopPropagation(); setEditingCommitId(null); }} className="flex-1 py-3 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black uppercase transition-transform active:scale-95">取消</button>
                     </div>
                   </div>
                 ) : (
