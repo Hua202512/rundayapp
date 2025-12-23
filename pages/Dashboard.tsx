@@ -111,6 +111,12 @@ const Dashboard: React.FC<Props> = (props) => {
   };
   const saveGoals = () => { setWeeklyGoal(parseInt(tempWeekly)); setEditMode('NONE'); };
 
+  const handleEdit = (commit: CommitRecord, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingCommitId(commit.id);
+    setEditCommitData({ ...commit });
+  };
+
   return (
     <div className="space-y-6 pb-4 animate-in fade-in duration-700">
       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
@@ -160,20 +166,42 @@ const Dashboard: React.FC<Props> = (props) => {
         <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl transition-colors group-hover:bg-white/20"></div>
         <div className="flex justify-between items-start relative z-10">
           <div className="space-y-1 flex-1">
-            <div className="flex items-baseline gap-2">
-              <span className="text-7xl font-black tracking-tighter leading-none">{currentWeight}</span>
-              <span className="text-xl font-bold text-white/60 uppercase">KG</span>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-               <div className="bg-white/10 px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
-                  <span className="text-[9px] font-bold opacity-60">初始:</span>
-                  <span className="text-xs font-black">{initialWeight} KG</span>
-               </div>
-               <div className="bg-white/10 px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
-                  <span className="text-[9px] font-bold opacity-60">目标:</span>
-                  <span className="text-xs font-black">{targetWeight} KG</span>
-               </div>
-            </div>
+            {editMode === 'WEIGHT_TARGET' ? (
+              <div className="space-y-4 animate-in slide-in-from-left-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-black opacity-60 uppercase tracking-widest">初始体重</span>
+                    <input type="number" step="0.1" className="w-full bg-white/20 rounded-xl px-3 py-2 outline-none text-white font-bold" value={tempInitial} onChange={e => setTempInitial(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-black opacity-60 uppercase tracking-widest">目标体重</span>
+                    <input type="number" step="0.1" className="w-full bg-white/20 rounded-xl px-3 py-2 outline-none text-white font-bold" value={tempTarget} onChange={e => setTempTarget(e.target.value)} />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button onClick={saveWeightTarget} className="flex-1 py-2 bg-white text-indigo-600 rounded-xl text-[10px] font-black uppercase shadow-lg">完成设置</button>
+                  <button onClick={() => setEditMode('NONE')} className="px-4 py-2 text-white/60 text-[10px] font-bold">取消</button>
+                </div>
+              </div>
+            ) : (
+              <div onClick={() => setEditMode('WEIGHT_TARGET')} className="cursor-pointer group/weight">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-7xl font-black tracking-tighter leading-none">{currentWeight}</span>
+                  <span className="text-xl font-bold text-white/60 uppercase">KG</span>
+                  <Edit2 size={16} className="text-white/40 opacity-0 group-hover/weight:opacity-100 ml-2" />
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                   <div className="bg-white/10 px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2 hover:bg-white/30 transition-all">
+                      <span className="text-[9px] font-bold opacity-60 uppercase tracking-tighter">初始:</span>
+                      <span className="text-xs font-black">{initialWeight} KG</span>
+                   </div>
+                   <div className="bg-white/10 px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2 hover:bg-white/30 transition-all">
+                      <span className="text-[9px] font-bold opacity-60 uppercase tracking-tighter">目标:</span>
+                      <span className="text-xs font-black">{targetWeight} KG</span>
+                   </div>
+                </div>
+              </div>
+            )}
           </div>
           <div onClick={() => fileInputRef.current?.click()} className="w-20 h-20 bg-white/20 rounded-3xl backdrop-blur-md flex items-center justify-center border border-white/30 cursor-pointer overflow-hidden relative shadow-inner">
             {avatar ? <img src={avatar} className="w-full h-full object-cover" /> : <span className="text-5xl">🐼</span>}
@@ -206,19 +234,40 @@ const Dashboard: React.FC<Props> = (props) => {
           )}
         </div>
 
-        <div onClick={() => setEditMode('GOALS')} className="bg-white rounded-[2rem] p-5 shadow-sm border border-slate-100 flex flex-col justify-between cursor-pointer active:scale-95 transition-all relative overflow-hidden">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600"><Target size={16} /></div>
-            <h3 className="font-black text-slate-800 text-[10px] uppercase tracking-widest">打卡进度</h3>
-          </div>
-          <div className="space-y-2">
-             <div className="flex justify-between items-baseline"><span className="text-2xl font-black text-slate-800 leading-none">{currentWeekCommits}</span><span className="text-[10px] font-black text-slate-300 uppercase">/{weeklyGoal} 次</span></div>
-             <div className="h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(100, (currentWeekCommits / weeklyGoal) * 100)}%` }}></div></div>
-          </div>
+        <div onClick={() => setEditMode('GOALS')} className="bg-white rounded-[2rem] p-5 shadow-sm border border-slate-100 flex flex-col justify-between cursor-pointer active:scale-95 transition-all relative overflow-hidden group">
+          {editMode === 'GOALS' ? (
+            <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-20 p-4 flex flex-col justify-center gap-2 animate-in fade-in" onClick={e => e.stopPropagation()}>
+               <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest text-center">每周目标次数</span>
+               <input 
+                 type="number" 
+                 className="bg-indigo-50 rounded-xl px-2 py-2 outline-none font-black text-center text-indigo-600" 
+                 value={tempWeekly} 
+                 onChange={e => setTempWeekly(e.target.value)} 
+                 autoFocus
+               />
+               <button onClick={saveGoals} className="py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase shadow-lg shadow-indigo-100 mt-1">确定</button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600"><Target size={16} /></div>
+                <h3 className="font-black text-slate-800 text-[10px] uppercase tracking-widest">打卡进度</h3>
+                <Edit2 size={10} className="ml-auto text-slate-200 group-hover:text-indigo-300 opacity-0 group-hover:opacity-100 transition-all" />
+              </div>
+              <div className="space-y-2">
+                 <div className="flex justify-between items-baseline">
+                   <span className="text-2xl font-black text-slate-800 leading-none">{currentWeekCommits}</span>
+                   <span className="text-[10px] font-black text-slate-300 uppercase tracking-tighter">/ {weeklyGoal} 次</span>
+                 </div>
+                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                   <div className="h-full bg-indigo-500 rounded-full transition-all duration-700" style={{ width: `${Math.min(100, (currentWeekCommits / weeklyGoal) * 100)}%` }}></div>
+                 </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* 核心新功能：协作小组 (Dev Squads) */}
       <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 space-y-5">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
@@ -249,7 +298,6 @@ const Dashboard: React.FC<Props> = (props) => {
                     <Zap size={8} fill="currentColor" />
                   </div>
                 )}
-                {/* 活跃度微型进度条 */}
                 <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-8 h-1 bg-slate-100 rounded-full overflow-hidden">
                   <div className="h-full bg-indigo-500" style={{ width: `${friend.score}%` }}></div>
                 </div>
@@ -258,7 +306,6 @@ const Dashboard: React.FC<Props> = (props) => {
             </div>
           ))}
           
-          {/* 数据透视详情浮窗 */}
           {selectedFriend && (
             <div className="absolute top-0 right-0 bg-white/95 backdrop-blur-md border border-emerald-100 rounded-3xl p-4 shadow-xl z-20 animate-in slide-in-from-right-4 w-48">
               <div className="flex justify-between items-start mb-2">
@@ -287,7 +334,6 @@ const Dashboard: React.FC<Props> = (props) => {
         <Zap size={20} className="group-hover:animate-bounce" /> 提交打卡，同步状态
       </button>
 
-      {/* 近期打卡记录 */}
       <div className="space-y-4">
         <div className="flex items-center gap-3 px-2">
            <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-slate-100"><History size={20} /></div>
@@ -318,20 +364,23 @@ const Dashboard: React.FC<Props> = (props) => {
                         </div>
                         <div className="min-w-0">
                           <h4 className="font-black text-slate-800 flex items-center gap-2 text-sm">{commit.type}</h4>
-                          <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                             <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400"><Clock size={10} /> {commit.duration}m</div>
+                            
                             {commit.weight && (
                               <div className="flex items-center gap-1.5 text-[10px] font-black text-white bg-emerald-500 px-2.5 py-1 rounded-full shadow-lg shadow-emerald-100">
                                 <Scale size={10} strokeWidth={3} /> {commit.weight} <span className="text-[8px] opacity-80 uppercase tracking-tighter">KG</span>
                               </div>
                             )}
+
                             {commit.distance !== undefined && commit.distance > 0 && (
                               <div className="flex items-center gap-1.5 text-[10px] font-black text-white bg-sky-500 px-2.5 py-1 rounded-full shadow-lg shadow-sky-100">
                                 <Navigation size={10} strokeWidth={3} /> {commit.distance} <span className="text-[8px] opacity-80 uppercase tracking-tighter">{commit.distanceUnit?.toUpperCase() || 'KM'}</span>
                               </div>
                             )}
+
                             {commit.sleepDuration && (
-                              <div className="flex items-center gap-1.5 text-[10px] font-black text-white bg-indigo-400 px-2.5 py-1 rounded-full shadow-lg shadow-indigo-50">
+                              <div className="flex items-center gap-1.5 text-[10px] font-black text-white bg-indigo-400 px-2.5 py-1 rounded-full shadow-lg shadow-indigo-50 animate-in fade-in">
                                 <Moon size={10} strokeWidth={3} /> {commit.sleepDuration} <span className="text-[8px] opacity-80 uppercase tracking-tighter">H</span>
                               </div>
                             )}
@@ -342,7 +391,7 @@ const Dashboard: React.FC<Props> = (props) => {
                         <span className="text-orange-500 font-black text-lg tracking-tighter leading-none">-{commit.calories} <span className="text-[9px] uppercase">kcal</span></span>
                         <div className="flex gap-2">
                           <button onClick={(e) => handleEdit(commit, e)} className="p-2.5 bg-slate-50 hover:bg-indigo-50 rounded-xl text-slate-300 hover:text-indigo-600 transition-all border border-slate-100 active:scale-90"><Edit2 size={14} /></button>
-                          <button onClick={(e) => { e.stopPropagation(); if(window.confirm("彻底删除该记录？")) onDeleteCommit(commit.id); }} className="p-2.5 bg-slate-50 hover:bg-red-50 rounded-xl text-slate-300 hover:text-red-500 transition-all border border-slate-100 active:scale-90"><Trash2 size={14} /></button>
+                          <button onClick={(e) => { e.stopPropagation(); if(window.confirm("彻底删除该记录？")) onDeleteCommit(commit.id); }} className="p-2.5 bg-slate-50 hover:bg-red-50 rounded-xl text-slate-300 hover:text-red-500 transition-all border border-slate-100 active:scale-90 group/del"><Trash2 size={14} className="group-hover/del:rotate-12 transition-transform" /></button>
                         </div>
                       </div>
                     </div>

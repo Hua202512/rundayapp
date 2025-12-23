@@ -32,7 +32,7 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
   const [location, setLocation] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   
-  const [headerTitle, setHeaderTitle] = useState('性能打卡');
+  const [headerTitle, setHeaderTitle] = useState('运动记录');
 
   const [sleepDuration, setSleepDuration] = useState('7.0');
   const [sleepQuality, setSleepQuality] = useState<'极好' | '良好' | '一般' | '较差'>('良好');
@@ -66,7 +66,6 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
   const handleGetLocation = () => {
     if (!navigator.geolocation) return alert('当前设备不支持地理位置获取');
     setLocating(true);
-    // 调用浏览器地理位置/地图位置
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLocation(`${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`);
@@ -74,7 +73,7 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
       },
       (err) => {
         console.error(err);
-        alert('位置获取受阻，请检查系统GPS或微信位置权限');
+        alert('位置获取受阻，请检查系统GPS或权限');
         setLocating(false);
       }
     );
@@ -95,9 +94,8 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
 
       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
 
-      {/* 运动类型选择 */}
       <div className="bg-white rounded-[2.5rem] p-7 shadow-sm border border-slate-100 space-y-4">
-        <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] px-1">运动类型选择</h3>
+        <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] px-1">运动项目</h3>
         <div className="grid grid-cols-4 gap-3">
           {Object.values(ActivityType).map(type => (
             <ActivityButton key={type} type={type} active={selectedType === type} onClick={() => setSelectedType(type)} />
@@ -106,31 +104,25 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
       </div>
 
       <div className="space-y-4">
-        {/* 第一组对敲: 运动时间 与 距离/次数 */}
         <div className="grid grid-cols-2 gap-4">
           <InputCard 
             icon={<Clock className="text-indigo-500" />} 
-            label="运动时间 (分钟)" 
+            label="持续时长 (分钟)" 
             value={duration} 
             onChange={setDuration} 
             type="number" 
           />
           
+          {/* 优化布局：单位选择置于上方，与标签平齐，避免干扰输入 */}
           <div className="bg-white rounded-[1.5rem] p-5 shadow-sm border border-slate-50 flex items-center gap-4 transition-all focus-within:border-indigo-200">
             <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center shrink-0">
               <Navigation className="text-sky-500" size={20} />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">距离/次数</span>
-              <div className="flex items-center gap-1">
-                <input 
-                  type="number" 
-                  value={distance} 
-                  onChange={(e) => setDistance(e.target.value)} 
-                  className="flex-1 min-w-0 text-lg font-black bg-transparent focus:outline-none text-slate-700" 
-                />
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest block truncate">距离</span>
                 <select 
-                  className="text-[9px] font-black text-indigo-500 bg-slate-100/50 rounded-md px-1 py-0.5 outline-none" 
+                  className="text-[9px] font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg px-2 py-0.5 outline-none border border-indigo-100 shadow-sm cursor-pointer transition-all" 
                   value={distanceUnit} 
                   onChange={(e) => setDistanceUnit(e.target.value as 'km' | 'm' | '次')}
                 >
@@ -139,15 +131,20 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
                   <option value="次">次</option>
                 </select>
               </div>
+              <input 
+                type="number" 
+                value={distance} 
+                onChange={(e) => setDistance(e.target.value)} 
+                className="w-full text-lg font-black bg-transparent focus:outline-none text-slate-700" 
+              />
             </div>
           </div>
         </div>
         
-        {/* 第二组对敲: 今日体重 与 运动感受 */}
         <div className="grid grid-cols-2 gap-4">
           <InputCard 
             icon={<Scale className="text-emerald-500" />} 
-            label="今日体重 (KG)" 
+            label="实时体重 (KG)" 
             value={weight} 
             placeholder="可选" 
             onChange={setWeight} 
@@ -159,26 +156,25 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
               <MessageSquare className="text-amber-500" size={20} />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">运动感受</span>
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">训练心得</span>
               <input 
                 type="text" 
                 value={note} 
                 onChange={(e) => setNote(e.target.value)} 
-                placeholder="心情/状态..." 
+                placeholder="记录状态..." 
                 className="w-full text-sm font-bold bg-transparent focus:outline-none text-slate-700 placeholder:text-slate-200 truncate" 
               />
             </div>
           </div>
         </div>
 
-        {/* 昨晚睡眠状态 */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 space-y-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500">
               <Moon size={20} />
             </div>
             <div>
-              <h3 className="font-black text-slate-800 text-sm uppercase tracking-widest">昨晚睡眠状态</h3>
+              <h3 className="font-black text-slate-800 text-sm uppercase tracking-widest">昨晚睡眠质量</h3>
             </div>
           </div>
           
@@ -187,7 +183,7 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
               <div className="flex justify-between mb-2 px-1">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">时长: {sleepDuration}H</span>
                 <span className={`text-[10px] font-black uppercase tracking-widest ${parseFloat(sleepDuration) >= 7 ? 'text-emerald-500' : 'text-amber-500'}`}>
-                  {parseFloat(sleepDuration) >= 7 ? '深度恢复' : '系统负荷中'}
+                  {parseFloat(sleepDuration) >= 7 ? '黄金深度' : '待补充'}
                 </span>
               </div>
               <input 
@@ -215,7 +211,6 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
           </div>
         </div>
 
-        {/* 上传与位置共享对敲 */}
         <div className="grid grid-cols-2 gap-4">
           <div 
             onClick={() => image ? setImage(null) : fileInputRef.current?.click()}
@@ -224,7 +219,7 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
             {image ? (
               <div className="relative w-full h-full flex flex-col items-center">
                 <img src={image} className="w-12 h-12 rounded-lg object-cover shadow-md mb-2" />
-                <span className="text-[10px] font-black text-indigo-600 uppercase">附件就绪</span>
+                <span className="text-[10px] font-black text-indigo-600 uppercase">图片已上传</span>
                 <X size={12} className="absolute -top-4 -right-2 text-slate-400" />
               </div>
             ) : (
@@ -241,14 +236,12 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
           >
             {locating ? <Loader2 className="animate-spin text-sky-500" /> : <div className="flex relative"><MapPin className={location ? "text-sky-500" : "text-slate-300"} size={24} /><Share2 size={10} className={`absolute -top-1 -right-1 ${location ? 'text-sky-600' : 'text-slate-300'}`} /></div>}
             <span className={`text-[10px] font-black uppercase tracking-wider ${location ? 'text-sky-600' : 'text-slate-400'}`}>
-              {location ? '位置已共享' : '位置共享'}
+              {location ? '位置就绪' : '位置共享'}
             </span>
-            {location && <span className="text-[8px] font-mono text-sky-400 truncate w-full text-center px-2">{location}</span>}
           </div>
         </div>
       </div>
 
-      {/* 底部确认提交按钮 */}
       <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-3">
         <button 
           onClick={handlePush} 
@@ -257,12 +250,12 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
           <div className="absolute inset-0 bg-indigo-500 opacity-0 group-hover:opacity-5 transition-opacity" />
           <span className="text-4xl transform -scale-x-100 group-hover:translate-x-2 transition-transform duration-300 group-hover:rotate-12">🐉</span>
           <div className="relative">
-            <div className="text-5xl animate-pulse group-hover:scale-110 group-active:scale-90 transition-transform duration-300 drop-shadow-lg">🐼</div>
+            <div className="text-5xl animate-pulse group-hover:scale-110 transition-transform duration-300 drop-shadow-lg">🐼</div>
           </div>
           <span className="text-4xl group-hover:-translate-x-2 transition-transform duration-300 group-hover:-rotate-12">🐅</span>
         </button>
         <div className="px-6 py-2 bg-slate-900 text-white text-[11px] font-black tracking-[0.2em] rounded-full shadow-lg border border-white/20 whitespace-nowrap">
-          运动状态记录好，点我看看
+          完成打卡，保存至本地
         </div>
       </div>
     </div>
