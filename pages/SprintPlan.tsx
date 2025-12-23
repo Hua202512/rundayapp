@@ -25,8 +25,8 @@ interface Props {
 }
 
 const SprintPlan: React.FC<Props> = ({ plan, setPlan, year, setYear, month, setMonth }) => {
-  const [planTitle, setPlanTitle] = useState('部署计划记录');
-  const [planSubtitle, setPlanSubtitle] = useState('配置您的周度 Sprint 模板，持续迭代身体素质');
+  const [planTitle, setPlanTitle] = useState('运动计划记录');
+  const [planSubtitle, setPlanSubtitle] = useState('配置您的周度运动模板，持续迭代身体素质');
 
   const getDaysInMonth = (y: number, m: number) => new Date(y, m + 1, 0).getDate();
   const getFirstDayOfMonth = (y: number, m: number) => new Date(y, m, 1).getDay();
@@ -72,7 +72,6 @@ const SprintPlan: React.FC<Props> = ({ plan, setPlan, year, setYear, month, setM
             </div>
             <div>
               <div className="font-black text-slate-800 text-lg">{year}年 {monthNames[month]}</div>
-              <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Deployment Timeline</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -111,15 +110,14 @@ const SprintPlan: React.FC<Props> = ({ plan, setPlan, year, setYear, month, setM
         </div>
       </div>
 
-      {/* Weekly Configuration List (Replacing Table for better visibility) */}
+      {/* Weekly Configuration List */}
       <div className="space-y-4">
         <div className="flex items-center gap-4 px-2">
           <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
             <Settings size={20} />
           </div>
           <div>
-            <h3 className="font-black text-slate-800 uppercase tracking-tighter">周度配置模板</h3>
-            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Weekly Configuration</p>
+            <h3 className="font-black text-slate-800 uppercase tracking-tighter">周运动计划</h3>
           </div>
         </div>
 
@@ -129,34 +127,38 @@ const SprintPlan: React.FC<Props> = ({ plan, setPlan, year, setYear, month, setM
               key={dayPlan.day} 
               className={`bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-50 transition-all ${dayPlan.isRest ? 'opacity-60 bg-slate-50/50' : 'hover:border-indigo-100 hover:shadow-md'}`}
             >
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 text-center">
-                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest block">{dayPlan.day}</span>
-                    <div className={`w-2 h-2 rounded-full mx-auto mt-1 ${dayPlan.isRest ? 'bg-slate-200' : 'bg-indigo-600 animate-pulse'}`}></div>
-                  </div>
+              <div className="flex items-center gap-3">
+                {/* 星期标识 */}
+                <div className="w-10 text-center shrink-0">
+                  <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest block">{dayPlan.day}</span>
+                  <div className={`w-1.5 h-1.5 rounded-full mx-auto mt-1 ${dayPlan.isRest ? 'bg-slate-200' : 'bg-indigo-600 animate-pulse'}`}></div>
+                </div>
+                
+                {/* 设置主容器 - 使用 flex 排列所有元素 */}
+                <div className={`flex-1 flex items-center justify-between px-3 py-2 rounded-2xl border transition-colors ${dayPlan.isRest ? 'bg-slate-100/50 border-slate-100' : 'bg-slate-50 border-slate-100'}`}>
                   
-                  <div className="flex flex-col gap-1">
+                  {/* 设置核心区：类型、数值、单位平齐 */}
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
                     <select 
                       disabled={dayPlan.isRest} 
-                      className="bg-transparent outline-none font-black text-sm text-slate-800 disabled:text-slate-400 cursor-pointer" 
+                      className="bg-transparent outline-none font-black text-sm text-slate-800 disabled:text-slate-400 cursor-pointer max-w-[80px]" 
                       value={dayPlan.task} 
                       onChange={e => handleUpdateDay(idx, { task: e.target.value as ActivityType })}
                     >
                       {Object.values(ActivityType).map(t => <option key={t} value={t}>{t}</option>)}
-                      <option value="REST">休整中</option>
+                      <option value="REST">休整</option>
                     </select>
-                    
+
                     {!dayPlan.isRest && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 bg-white/60 px-2 py-1 rounded-lg border border-slate-200/50">
                         <input 
                           type="text" 
-                          className="w-12 bg-slate-50 rounded-lg px-2 py-1 text-[10px] font-black text-slate-700 outline-none focus:ring-1 focus:ring-indigo-200" 
+                          className="w-10 bg-transparent text-[11px] font-black text-indigo-600 text-right outline-none" 
                           value={dayPlan.targetValue} 
                           onChange={e => handleUpdateDay(idx, { targetValue: e.target.value })} 
                         />
                         <select 
-                          className="text-[10px] font-black text-indigo-400 outline-none bg-transparent" 
+                          className="text-[9px] font-black text-slate-400 outline-none bg-transparent uppercase" 
                           value={dayPlan.targetUnit} 
                           onChange={e => handleUpdateDay(idx, { targetUnit: e.target.value as TargetUnit })}
                         >
@@ -168,14 +170,15 @@ const SprintPlan: React.FC<Props> = ({ plan, setPlan, year, setYear, month, setM
                       </div>
                     )}
                   </div>
-                </div>
 
-                <button 
-                  onClick={() => handleUpdateDay(idx, { isRest: !dayPlan.isRest })} 
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap ${dayPlan.isRest ? 'bg-slate-100 text-slate-400' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-100'}`}
-                >
-                  {dayPlan.isRest ? '休整日' : '部署日'}
-                </button>
+                  {/* 状态切换按钮 */}
+                  <button 
+                    onClick={() => handleUpdateDay(idx, { isRest: !dayPlan.isRest })} 
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all whitespace-nowrap ml-2 shrink-0 ${dayPlan.isRest ? 'bg-slate-200 text-slate-500' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-100/50'}`}
+                  >
+                    {dayPlan.isRest ? '休整日' : '运动日'}
+                  </button>
+                </div>
               </div>
             </div>
           ))}

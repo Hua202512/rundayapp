@@ -8,11 +8,11 @@ import {
   TrendingDown,
   Moon,
   Edit3,
-  CalendarDays
+  CalendarDays,
+  Zap
 } from 'lucide-react';
 import { 
   ComposedChart,
-  // Add BarChart to fix the missing import error
   BarChart,
   Line, 
   Bar, 
@@ -36,12 +36,15 @@ const Stats: React.FC<Props> = ({ commits, currentWeight }) => {
   const [statsSubtitle, setStatsSubtitle] = useState('身体好不好，运动数据说了算');
   const [range, setRange] = useState<7 | 30>(7);
 
+  // 质量得分映射
+  const qualityScoreMap: Record<string, number> = { '极好': 4, '良好': 3, '一般': 2, '较差': 1 };
+
   // 根据选定的 range (7或30) 提取数据
   const displayCommits = [...commits].reverse().slice(-range);
   
   const chartData = displayCommits.length > 0 
     ? displayCommits.map(c => ({
-        name: c.date.split('/')[2] + '日', // 格式化日期显示
+        name: c.date.split('/')[2] + '日',
         weight: c.weight || currentWeight,
         duration: c.duration,
       }))
@@ -51,6 +54,7 @@ const Stats: React.FC<Props> = ({ commits, currentWeight }) => {
     ? displayCommits.map(c => ({
         name: c.date.split('/')[2] + '日',
         hours: c.sleepDuration || 0,
+        quality: qualityScoreMap[c.sleepQuality || '良好'] || 3,
       }))
     : [];
 
@@ -92,7 +96,6 @@ const Stats: React.FC<Props> = ({ commits, currentWeight }) => {
           </div>
         </div>
 
-        {/* 范围选择 Toggle */}
         <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
           <button 
             onClick={() => setRange(7)}
@@ -109,14 +112,12 @@ const Stats: React.FC<Props> = ({ commits, currentWeight }) => {
         </div>
       </header>
 
-      {/* 顶部指标卡片 */}
       <div className="grid grid-cols-3 gap-3">
         <StatCard icon={<Flame size={18} className="text-orange-500" />} label="累计热量" value={`${totalCalories}`} color="bg-orange-50" />
         <StatCard icon={<Calendar size={18} className="text-indigo-500" />} label="打卡天数" value={`${commits.length}`} color="bg-indigo-50" />
         <StatCard icon={<Navigation size={18} className="text-sky-500" />} label="累计距离" value={`${totalDistance.toFixed(1)}`} color="bg-sky-50" />
       </div>
 
-      {/* 复合身体性能曲线 */}
       <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
         <div className="flex justify-between items-center mb-6 px-1">
           <div className="flex items-center gap-2 font-black uppercase tracking-tighter text-slate-800">
@@ -184,23 +185,20 @@ const Stats: React.FC<Props> = ({ commits, currentWeight }) => {
             </ComposedChart>
           </ResponsiveContainer>
         </div>
-        <p className="text-center text-[10px] text-slate-300 font-bold mt-4 italic uppercase tracking-widest">
-          Integrated Performance Metrics ({range} Records)
-        </p>
       </div>
 
-      {/* 睡眠时长图表 */}
+      {/* 身体睡眠质量监测 */}
       <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-2 font-black mb-6 px-1">
-          <div className="w-8 h-8 bg-indigo-50 rounded-xl flex items-center justify-center">
-            <Moon size={16} className="text-indigo-600" />
+        <div className="flex justify-between items-center mb-6 px-1">
+          <div className="flex items-center gap-2 font-black uppercase tracking-tighter text-slate-800">
+            <Moon size={18} className="text-indigo-600" /> 身体睡眠质量监测
           </div>
-          <span className="uppercase tracking-tighter text-slate-800">睡眠质量监测 (h)</span>
+          <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-lg">Sleep Analytics</span>
         </div>
-        <div className="h-48 w-full px-1">
+        
+        <div className="h-64 w-full px-1">
            <ResponsiveContainer width="100%" height="100%">
-            {/* BarChart is correctly used here and now properly imported */}
-            <BarChart data={sleepData}>
+            <ComposedChart data={sleepData}>
               <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis 
                 dataKey="name" 
@@ -208,24 +206,68 @@ const Stats: React.FC<Props> = ({ commits, currentWeight }) => {
                 tickLine={false} 
                 tick={{ fontSize: 10, fill: '#cbd5e1', fontWeight: 'bold' }} 
               />
-              <Bar dataKey="hours" radius={[8, 8, 0, 0]}>
-                {sleepData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={index === sleepData.length - 1 ? '#6366f1' : '#f1f5f9'} />
-                ))}
-              </Bar>
-              <Tooltip 
-                cursor={{ fill: '#f8fafc' }}
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+              <YAxis 
+                yAxisId="left"
+                orientation="left"
+                stroke="#94a3b8"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 9, fontWeight: 'bold' }}
+                domain={[0, 12]}
               />
-            </BarChart>
+              <YAxis 
+                yAxisId="right"
+                orientation="right"
+                stroke="#10b981"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 9, fontWeight: 'bold' }}
+                domain={[0, 5]}
+              />
+              <Tooltip 
+                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', fontSize: '11px' }} 
+              />
+              <Legend 
+                verticalAlign="top" 
+                align="right" 
+                iconType="circle"
+                wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingBottom: '20px', textTransform: 'uppercase' }}
+              />
+              <Bar 
+                yAxisId="left" 
+                dataKey="hours" 
+                name="睡眠时长(H)" 
+                fill="#f1f5f9" 
+                radius={[6, 6, 0, 0]} 
+                barSize={range === 7 ? 24 : 10}
+              />
+              <Line 
+                yAxisId="right" 
+                type="stepAfter" 
+                dataKey="quality" 
+                name="质量等级" 
+                stroke="#10b981" 
+                strokeWidth={2} 
+                dot={{ r: 3, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}
+              />
+            </ComposedChart>
           </ResponsiveContainer>
+        </div>
+        <div className="mt-4 flex justify-around border-t border-slate-50 pt-4">
+          <div className="text-center">
+            <p className="text-[9px] font-black text-slate-300 uppercase">平均时长</p>
+            <p className="text-sm font-black text-slate-700">{(sleepData.reduce((a,b)=>a+b.hours, 0)/totalCommits).toFixed(1)}H</p>
+          </div>
+          <div className="text-center">
+            <p className="text-[9px] font-black text-slate-300 uppercase">睡眠状态</p>
+            <p className="text-sm font-black text-emerald-500">OPTIMIZED</p>
+          </div>
         </div>
       </div>
 
-      {/* 运动模块占比 */}
       <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 space-y-6 pb-8">
         <div className="flex items-center gap-2 font-black uppercase tracking-tighter px-1 text-slate-800">
-          <BarChart2 size={18} className="text-indigo-600" /> 核心负载分布
+          <BarChart2 size={18} className="text-indigo-600" /> 运动类型组成
         </div>
 
         <div className="space-y-6 px-1">

@@ -10,7 +10,9 @@ import {
   Edit3,
   X,
   Loader2,
-  Moon
+  Moon,
+  MessageSquare,
+  Share2
 } from 'lucide-react';
 import { ActivityType, CommitRecord } from '../types';
 import { ACTIVITY_ICONS } from '../constants';
@@ -30,7 +32,7 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
   const [location, setLocation] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   
-  const [headerTitle, setHeaderTitle] = useState('打卡记录');
+  const [headerTitle, setHeaderTitle] = useState('性能打卡');
 
   const [sleepDuration, setSleepDuration] = useState('7.0');
   const [sleepQuality, setSleepQuality] = useState<'极好' | '良好' | '一般' | '较差'>('良好');
@@ -64,6 +66,7 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
   const handleGetLocation = () => {
     if (!navigator.geolocation) return alert('当前设备不支持地理位置获取');
     setLocating(true);
+    // 调用浏览器地理位置/地图位置
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLocation(`${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`);
@@ -71,14 +74,14 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
       },
       (err) => {
         console.error(err);
-        alert('获取位置失败，请检查系统权限');
+        alert('位置获取受阻，请检查系统GPS或微信位置权限');
         setLocating(false);
       }
     );
   };
 
   return (
-    <div className="space-y-6 pb-40 animate-in fade-in duration-500">
+    <div className="space-y-6 pb-44 animate-in fade-in duration-500">
       <header className="px-1">
         <div className="flex items-center gap-2 group">
           <input 
@@ -92,8 +95,9 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
 
       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
 
+      {/* 运动类型选择 */}
       <div className="bg-white rounded-[2.5rem] p-7 shadow-sm border border-slate-100 space-y-4">
-        <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] px-1">运动类型</h3>
+        <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] px-1">运动类型选择</h3>
         <div className="grid grid-cols-4 gap-3">
           {Object.values(ActivityType).map(type => (
             <ActivityButton key={type} type={type} active={selectedType === type} onClick={() => setSelectedType(type)} />
@@ -102,44 +106,88 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
       </div>
 
       <div className="space-y-4">
+        {/* 第一组对敲: 运动时间 与 距离/次数 */}
         <div className="grid grid-cols-2 gap-4">
-          <InputCard icon={<Clock className="text-indigo-500" />} label="运动时间 (分钟)" value={duration} onChange={setDuration} type="number" />
-          <InputCard icon={<Scale className="text-emerald-500" />} label="今日体重 (KG)" value={weight} placeholder="可选" onChange={setWeight} type="number" />
+          <InputCard 
+            icon={<Clock className="text-indigo-500" />} 
+            label="运动时间 (分钟)" 
+            value={duration} 
+            onChange={setDuration} 
+            type="number" 
+          />
+          
+          <div className="bg-white rounded-[1.5rem] p-5 shadow-sm border border-slate-50 flex items-center gap-4 transition-all focus-within:border-indigo-200">
+            <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center shrink-0">
+              <Navigation className="text-sky-500" size={20} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">距离/次数</span>
+              <div className="flex items-center gap-1">
+                <input 
+                  type="number" 
+                  value={distance} 
+                  onChange={(e) => setDistance(e.target.value)} 
+                  className="flex-1 min-w-0 text-lg font-black bg-transparent focus:outline-none text-slate-700" 
+                />
+                <select 
+                  className="text-[9px] font-black text-indigo-500 bg-slate-100/50 rounded-md px-1 py-0.5 outline-none" 
+                  value={distanceUnit} 
+                  onChange={(e) => setDistanceUnit(e.target.value as 'km' | 'm' | '次')}
+                >
+                  <option value="km">KM</option>
+                  <option value="m">M</option>
+                  <option value="次">次</option>
+                </select>
+              </div>
+            </div>
+          </div>
         </div>
         
-        <div className="bg-white rounded-[1.5rem] p-5 shadow-sm border border-slate-50 flex items-center gap-4 transition-all focus-within:border-indigo-200">
-          <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center">
-            <Navigation className="text-sky-500" />
-          </div>
-          <div className="flex-1">
-            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">运动距离/次数</span>
-            <div className="flex items-center gap-2">
-              <input type="number" value={distance} onChange={(e) => setDistance(e.target.value)} className="flex-1 text-lg font-black bg-transparent focus:outline-none text-slate-700" />
-              <select className="text-[10px] font-black text-indigo-500 bg-slate-50 rounded-lg p-1 outline-none" value={distanceUnit} onChange={(e) => setDistanceUnit(e.target.value as 'km' | 'm' | '次')}>
-                <option value="km">KM</option>
-                <option value="m">M</option>
-                <option value="次">次</option>
-              </select>
+        {/* 第二组对敲: 今日体重 与 运动感受 */}
+        <div className="grid grid-cols-2 gap-4">
+          <InputCard 
+            icon={<Scale className="text-emerald-500" />} 
+            label="今日体重 (KG)" 
+            value={weight} 
+            placeholder="可选" 
+            onChange={setWeight} 
+            type="number" 
+          />
+          
+          <div className="bg-white rounded-[1.5rem] p-5 shadow-sm border border-slate-50 flex items-center gap-4 transition-all focus-within:border-indigo-200">
+            <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center shrink-0">
+              <MessageSquare className="text-amber-500" size={20} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">运动感受</span>
+              <input 
+                type="text" 
+                value={note} 
+                onChange={(e) => setNote(e.target.value)} 
+                placeholder="心情/状态..." 
+                className="w-full text-sm font-bold bg-transparent focus:outline-none text-slate-700 placeholder:text-slate-200 truncate" 
+              />
             </div>
           </div>
         </div>
 
+        {/* 昨晚睡眠状态 */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 space-y-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500">
               <Moon size={20} />
             </div>
             <div>
-              <h3 className="font-black text-slate-800 text-sm uppercase tracking-widest">今日睡眠</h3>
+              <h3 className="font-black text-slate-800 text-sm uppercase tracking-widest">昨晚睡眠状态</h3>
             </div>
           </div>
           
           <div className="space-y-4">
             <div>
               <div className="flex justify-between mb-2 px-1">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">睡眠时长(h): {sleepDuration}H</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">时长: {sleepDuration}H</span>
                 <span className={`text-[10px] font-black uppercase tracking-widest ${parseFloat(sleepDuration) >= 7 ? 'text-emerald-500' : 'text-amber-500'}`}>
-                  {parseFloat(sleepDuration) >= 7 ? '性能完美' : '性能欠佳'}
+                  {parseFloat(sleepDuration) >= 7 ? '深度恢复' : '系统负荷中'}
                 </span>
               </div>
               <input 
@@ -167,6 +215,7 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
           </div>
         </div>
 
+        {/* 上传与位置共享对敲 */}
         <div className="grid grid-cols-2 gap-4">
           <div 
             onClick={() => image ? setImage(null) : fileInputRef.current?.click()}
@@ -175,13 +224,13 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
             {image ? (
               <div className="relative w-full h-full flex flex-col items-center">
                 <img src={image} className="w-12 h-12 rounded-lg object-cover shadow-md mb-2" />
-                <span className="text-[10px] font-black text-indigo-600 uppercase">附件已挂载</span>
+                <span className="text-[10px] font-black text-indigo-600 uppercase">附件就绪</span>
                 <X size={12} className="absolute -top-4 -right-2 text-slate-400" />
               </div>
             ) : (
               <>
                 <Camera className="text-amber-500" size={24} />
-                <span className="text-[10px] font-black uppercase tracking-wider">附加快照</span>
+                <span className="text-[10px] font-black uppercase tracking-wider">上传快照</span>
               </>
             )}
           </div>
@@ -190,49 +239,30 @@ const CheckIn: React.FC<Props> = ({ onCommit }) => {
             onClick={handleGetLocation}
             className={`bg-white rounded-[2rem] p-6 flex flex-col items-center justify-center gap-2 border-2 border-dashed transition-all cursor-pointer ${location ? 'border-sky-500 bg-sky-50/30' : 'border-slate-100 hover:border-sky-200'}`}
           >
-            {locating ? <Loader2 className="animate-spin text-sky-500" /> : <MapPin className={location ? "text-sky-500" : "text-slate-300"} size={24} />}
+            {locating ? <Loader2 className="animate-spin text-sky-500" /> : <div className="flex relative"><MapPin className={location ? "text-sky-500" : "text-slate-300"} size={24} /><Share2 size={10} className={`absolute -top-1 -right-1 ${location ? 'text-sky-600' : 'text-slate-300'}`} /></div>}
             <span className={`text-[10px] font-black uppercase tracking-wider ${location ? 'text-sky-600' : 'text-slate-400'}`}>
-              {location ? '坐标已同步' : '同步坐标'}
+              {location ? '位置已共享' : '位置共享'}
             </span>
-            {location && <span className="text-[8px] font-mono text-sky-400 truncate w-full text-center">{location}</span>}
+            {location && <span className="text-[8px] font-mono text-sky-400 truncate w-full text-center px-2">{location}</span>}
           </div>
-        </div>
-
-        <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
-              <Edit3 size={16} />
-            </div>
-            <h3 className="font-black text-slate-800 uppercase tracking-tighter">打卡记录</h3>
-          </div>
-          <textarea 
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="w-full h-28 bg-slate-50 rounded-2xl p-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-100 resize-none transition-all placeholder:text-slate-300"
-            placeholder="记录本次部署的心得或遇到的 BUG..."
-          />
         </div>
       </div>
 
-      {/* 底部确认按钮 */}
+      {/* 底部确认提交按钮 */}
       <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-3">
         <button 
           onClick={handlePush} 
           className="w-60 h-24 bg-white rounded-full shadow-[0_20px_50px_rgba(79,70,229,0.15)] border-4 border-slate-50 flex items-center justify-between px-8 active:scale-95 hover:scale-105 transition-all group overflow-hidden relative"
         >
           <div className="absolute inset-0 bg-indigo-500 opacity-0 group-hover:opacity-5 transition-opacity" />
-          
           <span className="text-4xl transform -scale-x-100 group-hover:translate-x-2 transition-transform duration-300 group-hover:rotate-12">🐉</span>
-          
           <div className="relative">
             <div className="text-5xl animate-pulse group-hover:scale-110 group-active:scale-90 transition-transform duration-300 drop-shadow-lg">🐼</div>
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-1 bg-slate-100 blur-[2px] rounded-full opacity-50"></div>
           </div>
-          
           <span className="text-4xl group-hover:-translate-x-2 transition-transform duration-300 group-hover:-rotate-12">🐅</span>
         </button>
-        <div className="px-6 py-2 bg-slate-900 text-white text-[11px] font-black tracking-[0.2em] rounded-full shadow-lg border border-white/20">
-          记录好点我看看
+        <div className="px-6 py-2 bg-slate-900 text-white text-[11px] font-black tracking-[0.2em] rounded-full shadow-lg border border-white/20 whitespace-nowrap">
+          运动状态记录好，点我看看
         </div>
       </div>
     </div>
@@ -259,12 +289,18 @@ const ActivityButton: React.FC<{ type: ActivityType, active: boolean, onClick: (
 
 const InputCard: React.FC<{ icon: React.ReactNode, label: string, value: string, onChange: (v: string) => void, type?: string, placeholder?: string }> = ({ icon, label, value, onChange, type = "text", placeholder }) => (
   <div className="bg-white rounded-[1.5rem] p-5 shadow-sm border border-slate-50 flex items-center gap-4 transition-all focus-within:border-indigo-200">
-    <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center">
+    <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center shrink-0">
       {icon}
     </div>
-    <div className="flex-1">
-      <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">{label}</span>
-      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full text-lg font-black bg-transparent focus:outline-none placeholder:text-slate-200 text-slate-700" />
+    <div className="flex-1 min-w-0">
+      <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1 truncate">{label}</span>
+      <input 
+        type={type} 
+        value={value} 
+        onChange={(e) => onChange(e.target.value)} 
+        placeholder={placeholder} 
+        className="w-full text-lg font-black bg-transparent focus:outline-none placeholder:text-slate-200 text-slate-700" 
+      />
     </div>
   </div>
 );

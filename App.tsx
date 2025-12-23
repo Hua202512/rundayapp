@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Home as HomeIcon, 
   Calendar, 
@@ -22,45 +22,62 @@ const INITIAL_PLAN: PlanDay[] = [
   { day: 'Sun', task: ActivityType.SWIMMING, targetValue: '1000', targetUnit: 'm', isRest: false },
 ];
 
+const STORAGE_KEYS = {
+  COMMITS: 'devfitness_commits_v1',
+  USER_CONFIG: 'devfitness_user_config_v1',
+  PLAN: 'devfitness_plan_v1'
+};
+
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewType>('HOME');
   
-  // User Profile States
-  const [userName, setUserName] = useState('DevCoder');
-  const [systemStatus, setSystemStatus] = useState('保持自律，代码与身材齐飞');
-  const [avatar, setAvatar] = useState<string>('');
-  
-  // Goal States
-  const [weeklyGoal, setWeeklyGoal] = useState(4);
-  const [monthlyGoal, setMonthlyGoal] = useState(16);
-  
-  // Health & Metric States
-  const [weight, setWeight] = useState(82.1);
-  const [targetWeight, setTargetWeight] = useState(76.0);
+  // 核心状态初始化（优先从本地存储读取）
+  const [userName, setUserName] = useState(() => localStorage.getItem('userName') || 'DevCoder');
+  const [systemStatus, setSystemStatus] = useState(() => localStorage.getItem('systemStatus') || '保持自律，系统性能最优解');
+  const [avatar, setAvatar] = useState(() => localStorage.getItem('avatar') || '');
+  const [initialWeight, setInitialWeight] = useState(() => Number(localStorage.getItem('initialWeight')) || 85.0);
+  const [targetWeight, setTargetWeight] = useState(() => Number(localStorage.getItem('targetWeight')) || 75.0);
+  const [weeklyGoal, setWeeklyGoal] = useState(() => Number(localStorage.getItem('weeklyGoal')) || 4);
 
-  // Plan States
-  const [weeklyPlan, setWeeklyPlan] = useState<PlanDay[]>(INITIAL_PLAN);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [weeklyPlan, setWeeklyPlan] = useState<PlanDay[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.PLAN);
+    return saved ? JSON.parse(saved) : INITIAL_PLAN;
+  });
 
-  // 计算当前当天的计划
+  const [commits, setCommits] = useState<CommitRecord[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.COMMITS);
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // 持久化副作用：监听状态变化并保存到 LocalStorage
+  useEffect(() => {
+    localStorage.setItem('userName', userName);
+    localStorage.setItem('systemStatus', systemStatus);
+    localStorage.setItem('avatar', avatar);
+    localStorage.setItem('initialWeight', initialWeight.toString());
+    localStorage.setItem('targetWeight', targetWeight.toString());
+    localStorage.setItem('weeklyGoal', weeklyGoal.toString());
+  }, [userName, systemStatus, avatar, initialWeight, targetWeight, weeklyGoal]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.COMMITS, JSON.stringify(commits));
+  }, [commits]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.PLAN, JSON.stringify(weeklyPlan));
+  }, [weeklyPlan]);
+
+  // 计算当前“实时体重”
+  const currentWeight = useMemo(() => {
+    const lastWeightCommit = commits.find(c => c.weight !== undefined);
+    return lastWeightCommit?.weight ?? initialWeight;
+  }, [commits, initialWeight]);
+
   const getTodayPlan = () => {
-    const today = new Date().getDay(); // 0 是周日, 1 是周一
-    const index = today === 0 ? 6 : today - 1; // 转换为 0=周一, 6=周日
+    const today = new Date().getDay();
+    const index = today === 0 ? 6 : today - 1;
     return weeklyPlan[index];
   };
-
-  const [commits, setCommits] = useState<CommitRecord[]>([
-    {
-      id: '1',
-      date: new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }),
-      type: ActivityType.SWIMMING,
-      duration: 30,
-      distance: 1,
-      calories: 225,
-      note: 'Initial commit: 系统初始化成功，第一行代码已跑通。',
-    }
-  ]);
 
   const addCommit = (commit: Omit<CommitRecord, 'id' | 'calories'>) => {
     const calories = commit.duration * 7.5; 
@@ -69,17 +86,23 @@ const App: React.FC = () => {
       id: Date.now().toString(),
       calories: Math.round(calories)
     };
-    setCommits([newCommit, ...commits]);
-    if (commit.weight) setWeight(commit.weight);
+    setCommits(prev => [newCommit, ...prev]);
     setActiveView('HOME');
   };
 
   const deleteCommit = (id: string) => {
-    setCommits(prev => prev.filter(c => c.id !== id));
+    setCommits(prevCommits => prevCommits.filter(c => c.id !== id));
   };
 
   const updateCommit = (id: string, updates: Partial<CommitRecord>) => {
     setCommits(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  };
+
+  const clearAllData = () => {
+    if (window.confirm("确定要清空所有本地数据吗？此操作不可撤销。")) {
+      localStorage.clear();
+      window.location.reload();
+    }
   };
 
   const renderView = () => {
@@ -87,39 +110,40 @@ const App: React.FC = () => {
       case 'HOME': return (
         <Dashboard 
           commits={commits} 
-          currentWeight={weight} 
+          currentWeight={currentWeight} 
+          initialWeight={initialWeight}
           targetWeight={targetWeight} 
           userName={userName}
           systemStatus={systemStatus}
           avatar={avatar}
           weeklyGoal={weeklyGoal}
-          monthlyGoal={monthlyGoal}
+          monthlyGoal={16}
           currentDayPlan={getTodayPlan()}
           setUserName={setUserName}
           setSystemStatus={setSystemStatus}
           setAvatar={setAvatar}
-          setWeight={setWeight}
+          setInitialWeight={setInitialWeight}
           setTargetWeight={setTargetWeight}
           setWeeklyGoal={setWeeklyGoal}
-          setMonthlyGoal={setMonthlyGoal}
           onDeleteCommit={deleteCommit}
           onUpdateCommit={updateCommit}
           onCheckIn={() => setActiveView('CHECKIN')} 
           onViewPlan={() => setActiveView('PLAN')}
+          onResetData={clearAllData}
         />
       );
       case 'PLAN': return (
         <SprintPlan 
           plan={weeklyPlan} 
           setPlan={setWeeklyPlan} 
-          year={selectedYear} 
-          setYear={setSelectedYear}
-          month={selectedMonth}
-          setMonth={setSelectedMonth}
+          year={new Date().getFullYear()} 
+          setYear={() => {}} 
+          month={new Date().getMonth()}
+          setMonth={() => {}}
         />
       );
       case 'CHECKIN': return <CheckIn onCommit={addCommit} />;
-      case 'STATS': return <Stats commits={commits} currentWeight={weight} />;
+      case 'STATS': return <Stats commits={commits} currentWeight={currentWeight} />;
       default: return null;
     }
   };
